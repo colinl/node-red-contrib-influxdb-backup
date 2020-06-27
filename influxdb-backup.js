@@ -14,9 +14,14 @@
  * limitations under the License.
  **/
 module.exports = function(RED) {
-    var PromisifyChildProcess = require('promisify-child-process');
+    let PromisifyChildProcess = require('promisify-child-process');
     const { exec, spawn/*, fork, execFile*/ } = PromisifyChildProcess;
     const execOpt = {encoding: 'binary', maxBuffer: 10000000, shell: '/bin/bash'}
+    let fs = require('fs');
+    let util = require('util')
+    const {promisify} = util;
+    const readdirP = promisify(fs.readdir)
+    const unlinkP = promisify(fs.unlink)
         
     function InfluxBackupNode(config) {
         RED.nodes.createNode(this,config);
@@ -67,6 +72,21 @@ module.exports = function(RED) {
             // start provided but not end, so provide end in the future
             end = "2050-01-01T00:00:00Z"
           }
+
+          async function clearBackupFolder() {
+            console.log(`Emptying ${folder}`)
+            node.status({text: "Emptying Folder"})
+            let files = await readdirP(folder);
+            const regex = /\d{8}T\d{6}Z.*[.](manifest|meta|tar|tar[.]gz)$/
+            // select matching files only
+            files = files.filter(f => regex.test(f))
+            // delete them
+            // can't(?) use map as need to call await at this level
+            for (let i=0; i<files.length; i++) {
+                await unlinkP(`${folder}/${files[i]}`)
+            }
+          }
+
           async function doIt() {
               if (clearfolder) {
                   await clearBackupFolder()
@@ -113,15 +133,7 @@ module.exports = function(RED) {
           });
 
           send(null);
-            
-          function clearBackupFolder() {
-              console.log(`Emptying ${folder}`)
-              node.status({text: "Emptying Folder"})
-              // filenames should start yyyymmddThhmmssZ.
-              // this needs bash, but we have ensured that in the exec opts
-              return exec(`rm -f ${folder}/????????T??????Z*.{manifest,meta,tar,tar.gz}`, execOpt)
-          }
-          
+
           function doBackup(msg) {
               console.log(`Backup -database ${database} -host ${host}:${port} ${folder}`)
               node.status({text: "Running Backup"})
