@@ -1,0 +1,145 @@
+<!--
+  Copyright 2020 Colin Law
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<script type="text/javascript">
+    RED.nodes.registerType('influxdb backup',{
+        category: 'storage',
+        color: 'rgb(218, 196, 180)',
+        defaults: {
+            name: {value:""},
+            folder: {value:"", required: true},
+            folderType: {value: "str"},
+            database: {value:"", required: true},
+            databaseType: {value: "str"},
+            host: {value:"localhost", required: true},
+            hostType: {value: "str"},
+            port: {value:"8088", required: true},
+            portType: {value: "str"},
+            clearfolder: {value: false},
+            clearfolderType: {value: "bool"},
+            unzip: {value: false},
+            unzipType: {value: "bool"}
+        },
+        inputs:1,
+        outputs:3,
+        icon: "influx.png",
+        label: function() {
+            return this.name||"influxdb backup";
+        },
+        labelStyle: function() {
+            return this.name?"node_label_italic":"";
+        },
+        oneditprepare: function() {
+          if (!this.folderType) {
+              this.folderType = 'str';
+          }
+          $("#node-input-folder").typedInput({
+              default: 'str',
+              types: ['str','msg','flow','global','env'],
+              typeField: $("#node-input-folderType")
+          });
+          if (!this.databaseType) {
+              this.databaseType = 'str';
+          }
+          $("#node-input-database").typedInput({
+              default: 'str',
+              types: ['str','msg','flow','global','env'],
+              typeField: $("#node-input-databaseType")
+          });
+          if (!this.hostType) {
+              this.hostType = 'str';
+          }
+          $("#node-input-host").typedInput({
+              default: 'str',
+              types: ['str','msg','flow','global','env'],
+              typeField: $("#node-input-hostType")
+          });
+          if (!this.portType) {
+              this.portType = 'str';
+          }
+          $("#node-input-port").typedInput({
+              default: 'str',
+              types: ['str','msg','flow','global','env'],
+              typeField: $("#node-input-portType")
+          });
+          if (!this.clearfolderType) {
+              this.clearfolderType = 'bool';
+          }
+          $("#node-input-clearfolder").typedInput({
+              default: 'bool',
+              types: ['bool','msg','flow','global','env'],
+              typeField: $("#node-input-clearfolderType")
+          });
+          if (!this.unzipType) {
+              this.unzipType = 'bool';
+          }
+          $("#node-input-unzip").typedInput({
+              default: 'bool',
+              types: ['bool','msg','flow','global','env'],
+              typeField: $("#node-input-unzipType")
+          });
+        }
+    });
+</script>
+
+<script type="text/x-red" data-template-name="influxdb backup">
+    <!-- Name -->  
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    </br>
+    <!-- Folder -->  
+    <div class="form-row">
+        <label for="node-input-folder"><i class="fa fa-folder"></i> Folder</label>
+        <input type="text" id="node-input-folder" placeholder="Folder">
+        <input type="hidden" id="node-input-folderType">
+    </div>
+    <!-- Database -->  
+    <div class="form-row">
+        <label for="node-input-database"><i class="fa fa-tag"></i> Database</label>
+        <input type="text" id="node-input-database" placeholder="Database">
+        <input type="hidden" id="node-input-databaseType">
+    </div>
+    <!-- Host -->  
+      <div class="form-row">
+        <label for="node-input-host"><i class="fa fa-tag"></i> Host</label>
+        <input type="text" id="node-input-host" placeholder="Host">
+        <input type="hidden" id="node-input-hostType">
+    </div>
+    <!-- Port -->  
+    <div class="form-row">
+        <label for="node-input-port"><i class="fa fa-tag"></i> Port</label>
+        <input type="text" id="node-input-port" placeholder="Port">
+        <input type="hidden" id="node-input-portType">
+    </div>
+    <!-- Clear Folder -->  
+    <div class="form-row">
+        <label for="node-input-clearfolder"><i class="fa fa-tag"></i> Clear destination folder</label>
+        <input type="text" id="node-input-clearfolder">
+        <input type="hidden" id="node-input-clearfolderType">
+    </div>
+    <!-- Unzip -->  
+    <div class="form-row">
+        <label for="node-input-unzip"><i class="fa fa-tag"></i> Unzip files</label>
+        <input type="text" id="node-input-unzip">
+        <input type="hidden" id="node-input-unzipType">
+    </div>  
+</script>
+
+<script type="text/x-red" data-help-name="influxdb backup">
+    <p>Influx database backup using influxd backup</p>
+</script>
