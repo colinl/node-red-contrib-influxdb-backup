@@ -15,13 +15,16 @@
  **/
 module.exports = function(RED) {
     let PromisifyChildProcess = require('promisify-child-process');
-    const { exec, spawn/*, fork, execFile*/ } = PromisifyChildProcess;
-    const execOpt = {encoding: 'binary', maxBuffer: 10000000, shell: '/bin/bash'}
     let fs = require('fs');
     let util = require('util')
+    let pako = require('pako');
+    const { exec, spawn/*, fork, execFile*/ } = PromisifyChildProcess;
+    const execOpt = {encoding: 'binary', maxBuffer: 10000000, shell: '/bin/bash'}
     const {promisify} = util;
     const readdirP = promisify(fs.readdir)
     const unlinkP = promisify(fs.unlink)
+    const readFileP = promisify(fs.readFile)
+    const writeFileP = promisify(fs.writeFile)
         
     function InfluxBackupNode(config) {
         RED.nodes.createNode(this,config);
@@ -87,6 +90,69 @@ module.exports = function(RED) {
             }
           }
 
+          function doBackup(msg) {
+              console.log(`Backup -database ${database} -host ${host}:${port} ${folder}`)
+              node.status({text: "Running Backup"})
+              let cmd = `influxd backup -portable -database ${database} -host ${host}:${port}`
+              if (start) {
+                cmd += ` -start ${start}`
+              }
+              if (end) {
+                cmd += ` -end ${end}`
+              }
+              cmd += ` ${folder}`
+              //console.log (cmd)
+              let childProcess = spawn(cmd, [], execOpt)
+              currentProcess = childProcess
+              restartWatchdog()
+              childProcess.stdout.on('data', function (data) {
+                  let msg2 = RED.util.cloneMessage(msg)
+                  msg2.payload = data.toString()
+                  // if this is a good progress record (contains "shard=") then restart the watchdog
+                  if (msg2.payload.includes("shard=")) {
+                      restartWatchdog()
+                  }
+                  send(msg2);         // Clone?
+              });
+              childProcess.stderr.on('data', function (data) {
+                  let msg2 = RED.util.cloneMessage(msg)
+                  msg2.topic = "stderr"
+                  msg2.payload = data.toString()
+                  console.log("backup stderr")
+                  send([null, msg2]);
+                  // don't set return code failed as it may not be a permanent error
+              });
+              
+              return childProcess
+          }
+          
+          async function unzipFiles() {
+              node.status({text: "Unzipping Files"})
+              console.log("Getting file list")
+              let files = await readdirP(folder);
+              const regex = /\d{8}T\d{6}Z.*[.]tar[.]gz$/
+              // select matching files only
+              files = files.filter(f => regex.test(f))
+              // unzip them
+              // can't(?) use map as need to call await at this level
+              for (let i=0; i<files.length; i++) {
+                // read file
+                console.log(`Reading ${files[i]}`)
+                let data = await readFileP(`${folder}/${files[i]}`)
+                console.log(`${typeof data} ${data.length}`)
+                console.log("unzipping")
+                // unzip
+                let out = new Buffer.from(pako.inflate(data));
+                let outFile = files[i].slice(0,-3)
+                // write tar file
+                console.log(`${outFile} ${out.length}`)
+                await writeFileP(`${folder}/${outFile}`, out)
+                // delete original
+                await unlinkP(`${folder}/${files[i]}`)
+              }
+              //return exec(`gunzip ${folder}/*.tar.gz`, execOpt)
+          }
+
           async function doIt() {
               if (clearfolder) {
                   await clearBackupFolder()
@@ -133,48 +199,6 @@ module.exports = function(RED) {
           });
 
           send(null);
-
-          function doBackup(msg) {
-              console.log(`Backup -database ${database} -host ${host}:${port} ${folder}`)
-              node.status({text: "Running Backup"})
-              let cmd = `influxd backup -portable -database ${database} -host ${host}:${port}`
-              if (start) {
-                cmd += ` -start ${start}`
-              }
-              if (end) {
-                cmd += ` -end ${end}`
-              }
-              cmd += ` ${folder}`
-              //console.log (cmd)
-              let childProcess = spawn(cmd, [], execOpt)
-              currentProcess = childProcess
-              restartWatchdog()
-              childProcess.stdout.on('data', function (data) {
-                  let msg2 = RED.util.cloneMessage(msg)
-                  msg2.payload = data.toString()
-                  // if this is a good progress record (contains "shard=") then restart the watchdog
-                  if (msg2.payload.includes("shard=")) {
-                      restartWatchdog()
-                  }
-                  send(msg2);         // Clone?
-              });
-              childProcess.stderr.on('data', function (data) {
-                  let msg2 = RED.util.cloneMessage(msg)
-                  msg2.topic = "stderr"
-                  msg2.payload = data.toString()
-                  console.log("backup stderr")
-                  send([null, msg2]);
-                  // don't set return code failed as it may not be a permanent error
-              });
-              
-              return childProcess
-          }
-          
-          function unzipFiles() {
-              console.log("Unzipping")
-              node.status({text: "Unzipping Files"})
-              return exec(`gunzip ${folder}/*.tar.gz`, execOpt)
-          }
           
           function restartWatchdog() {
               stopWatchdog()

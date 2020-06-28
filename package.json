@@ -5,7 +5,9 @@
     "license"      : "Apache-2.0",
     "author"       : "Colin Law",
     "dependencies" : {
-       "promisify-child-process": "^4.1.1"
+      "util": "^0.12.3",
+      "pako": "^1.0.11",
+      "promisify-child-process": "^4.1.1"
     },
     "keywords"     : [ "node-red", "influxdb", "backup"],
     "homepage"     : "https://github.com/colinl/node-red-contrib-influxdb-backup",
