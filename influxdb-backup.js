@@ -98,7 +98,11 @@ module.exports = function(RED) {
           function doBackup(msg) {
               console.log(`Backup -database ${database} -host ${host}:${port} ${folder}`)
               node.status({text: "Running Backup"})
-              let cmd = `influxd backup -portable -database ${database} -host ${host}:${port}`
+              let cmd = `influxd backup -portable`
+              if (database && database.length > 0) {
+                cmd += ` -database ${database}`
+              } 
+              cmd += ` -host ${host}:${port}`
               if (start) {
                 cmd += ` -start ${start}`
               }
