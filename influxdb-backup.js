@@ -79,7 +79,12 @@ module.exports = function(RED) {
           async function clearBackupFolder() {
             console.log(`Emptying ${folder}`)
             node.status({text: "Emptying Folder"})
-            let files = await readdirP(folder);
+            let files = [];
+            try {
+              files = await readdirP(folder);
+            } catch {
+              // ignore errors in readdir as probably folder does not exist
+            }
             const regex = /\d{8}T\d{6}Z.*[.](manifest|meta|tar|tar[.]gz)$/
             // select matching files only
             files = files.filter(f => regex.test(f))
