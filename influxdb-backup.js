@@ -25,6 +25,7 @@ module.exports = function(RED) {
     const unlinkP = promisify(fs.unlink)
     const readFileP = promisify(fs.readFile)
     const writeFileP = promisify(fs.writeFile)
+    const renameP = promisify(fs.rename)
         
     function InfluxBackupNode(config) {
         RED.nodes.createNode(this,config);
@@ -41,6 +42,8 @@ module.exports = function(RED) {
         this.clearfolderType = config.clearfolderType || "bool";
         this.unzipConfig = config.unzip;
         this.unzipType = config.unzipType || "bool";
+        this.prefixConfig = config.prefix;
+        this.prefixType = config.prefixType || "str";
         
         // Save "this" object
         let node = this;
@@ -69,6 +72,7 @@ module.exports = function(RED) {
           let unzip = RED.util.evaluateNodeProperty(node.unzipConfig, node.unzipType, node, msg)
           // only allow boolean true or string "true" to be true
           unzip = (unzip === true || unzip === "true") ? true : false
+          let prefix = RED.util.evaluateNodeProperty(node.prefixConfig, node.prefixType, node, msg)
           let start = msg.start
           let end = msg.end
           if (start && !end) {
@@ -77,7 +81,7 @@ module.exports = function(RED) {
           }
 
           async function clearBackupFolder() {
-            console.log(`Emptying ${folder}`)
+            //console.log(`Emptying ${folder}`)
             node.status({text: "Emptying Folder"})
             let files = [];
             try {
@@ -85,7 +89,7 @@ module.exports = function(RED) {
             } catch {
               // ignore errors in readdir as probably folder does not exist
             }
-            const regex = /\d{8}T\d{6}Z.*[.](manifest|meta|tar|tar[.]gz)$/
+            const regex = /[.](manifest|meta|tar|tar[.]gz)$/
             // select matching files only
             files = files.filter(f => regex.test(f))
             // delete them
@@ -96,7 +100,6 @@ module.exports = function(RED) {
           }
 
           function doBackup(msg) {
-              console.log(`Backup -database ${database} -host ${host}:${port} ${folder}`)
               node.status({text: "Running Backup"})
               let cmd = `influxd backup -portable`
               if (database && database.length > 0) {
@@ -127,7 +130,6 @@ module.exports = function(RED) {
                   let msg2 = RED.util.cloneMessage(msg)
                   msg2.topic = "stderr"
                   msg2.payload = data.toString()
-                  console.log("backup stderr")
                   send([null, msg2]);
                   // don't set return code failed as it may not be a permanent error
               });
@@ -137,7 +139,6 @@ module.exports = function(RED) {
           
           async function unzipFiles() {
               node.status({text: "Unzipping Files"})
-              console.log("Getting file list")
               let files = await readdirP(folder);
               const regex = /\d{8}T\d{6}Z.*[.]tar[.]gz$/
               // select matching files only
@@ -146,43 +147,63 @@ module.exports = function(RED) {
               // can't(?) use map as need to call await at this level
               for (let i=0; i<files.length; i++) {
                 // read file
-                console.log(`Reading ${files[i]}`)
                 let data = await readFileP(`${folder}/${files[i]}`)
-                console.log(`${typeof data} ${data.length}`)
-                console.log("unzipping")
                 // unzip
                 let out = new Buffer.from(pako.inflate(data));
                 let outFile = files[i].slice(0,-3)
+                // replace the date section with the prefix if provided
+                if (prefix && prefix.length > 0) {
+                  outFile = prefix + outFile.substring(16)
+                }
                 // write tar file
-                console.log(`${outFile} ${out.length}`)
                 await writeFileP(`${folder}/${outFile}`, out)
                 // delete original
                 await unlinkP(`${folder}/${files[i]}`)
               }
-              //return exec(`gunzip ${folder}/*.tar.gz`, execOpt)
+              // update manifest and meta if filenames changed
+              if (prefix && prefix.length > 0) {
+                // find the manifest file
+                let files = await readdirP(folder);
+                // rename the meta and manifest files
+                let regex = /[.](manifest|meta)/
+                files = files.filter(f => regex.test(f))
+                if (files.length != 2) {
+                  throw "Missing or extra manifest or meta files"
+                }
+                for (let i=0; i<files.length; i++) {
+                  await renameP(`${folder}/${files[i]}`, `${folder}/${prefix}${files[i].substring(16)}`)
+                }
+                let mftFile = `${prefix}.manifest`
+                // read the manifest, which should be json
+                let data = await readFileP(`${folder}/${mftFile}`)
+                // convert to object
+                let manifest = JSON.parse(data)
+                // change the filenames
+                manifest.meta.fileName = prefix + manifest.meta.fileName.substring(16)
+                manifest.files.map(function(file) {
+                  file.fileName = prefix + file.fileName.substring(16)
+                  return file
+                });
+                // rewrite the manifest file
+                await writeFileP(`${folder}/${mftFile}`, JSON.stringify(manifest, null, 2))
+              }
           }
 
           async function doIt() {
               if (clearfolder) {
                   await clearBackupFolder()
-                  console.log("cleared")
               } else {
-                  console.log("skipping clear")
               }
               await doBackup(msg)
-              console.log("done backup")
               stopWatchdog()
               if (unzip) {
                   await unzipFiles()
-                  console.log("Unzipped")
-              } else
-              {
-                  console.log("skipping unzip")
               }
           }
+
           doIt()
           .catch(function (err) {
-              console.log("Caught")
+              //console.log("Caught")
               node.status({text: "Error"})
               let msg2 = RED.util.cloneMessage(msg)
               msg2.topic = "catch"
@@ -193,7 +214,7 @@ module.exports = function(RED) {
           })
           .finally(function() {
               node.status({text: ""})
-              console.log("Finally")
+              //console.log("Finally")
               let msg2 = RED.util.cloneMessage(msg)
               msg2.payload = {code: returnCode}   // 0 is ok, 1 is failure
               send([null, null, msg2])

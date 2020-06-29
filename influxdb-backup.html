@@ -31,7 +31,9 @@
             clearfolder: {value: false},
             clearfolderType: {value: "bool"},
             unzip: {value: false},
-            unzipType: {value: "bool"}
+            unzipType: {value: "bool"},
+            prefix: {value:""},
+            prefixType: {value: "str"}
         },
         inputs:1,
         outputs:3,
@@ -91,6 +93,14 @@
               types: ['bool','msg','flow','global','env'],
               typeField: $("#node-input-unzipType")
           });
+          if (!this.prefixType) {
+              this.prefixType = 'str';
+          }
+          $("#node-input-prefix").typedInput({
+              default: 'str',
+              types: ['str','msg','flow','global','env'],
+              typeField: $("#node-input-prefixType")
+          });
         }
     });
 </script>
@@ -128,15 +138,21 @@
     </div>
     <!-- Clear Folder -->  
     <div class="form-row">
-        <label for="node-input-clearfolder"><i class="fa fa-tag"></i> Clear destination folder</label>
+        <label for="node-input-clearfolder"><i class="fa fa-tag"></i> Clear folder</label>
         <input type="text" id="node-input-clearfolder">
         <input type="hidden" id="node-input-clearfolderType">
     </div>
-    <!-- Unzip -->  
     <div class="form-row">
-        <label for="node-input-unzip"><i class="fa fa-tag"></i> Unzip files</label>
+        <!-- Unzip -->  
+        <label for="node-input-unzip"><i class="fa fa-tag"></i> Unzip and rename files</label>
         <input type="text" id="node-input-unzip">
         <input type="hidden" id="node-input-unzipType">
+    </div>
+    <div class="form-row">
+        <!-- Prefix -->  
+        <label for="node-input-prefix"%><i class="fa fa-tag"></i> Prefix</label>
+        <input type="text" id="node-input-prefix" placeholder="Prefix">
+        <input type="hidden" id="node-input-prefixType">
     </div>  
 </script>
 
