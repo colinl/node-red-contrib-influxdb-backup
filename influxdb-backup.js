@@ -48,6 +48,9 @@ module.exports = function(RED) {
         // Save "this" object
         let node = this;
 
+        let currentProcess = null;
+        let watchdogTimer = null;
+
         let msgQueue = [];
 
         node.on('input', function(msg, send, done) {
@@ -56,24 +59,39 @@ module.exports = function(RED) {
           // if there is now only one in the queue then nothing going on so handle it immediately
           // otherwise already dealing with one so nothing more to do
           if (msgQueue.length == 1) {
-            console.log("handling immediate")
+            node.log("handling immediate")
             handleMessage(msgQueue[0].thisMsg, msgQueue[0].thisSend, msgQueue[0].thisDone)
             // leave it in the queue, it will be shifted out when done
           } else {
-            console.log("Queueing")
+            node.log("Queued " + msgQueue.length)
           }
         });
 
         node.on('close', function() {
-          console.log("Closing")
+          node.log("Closing")
+          //node.log("Closing " + msgQueue.length)
+          // kill the current process if any
+          if (currentProcess) {
+              node.log("killing")
+              currentProcess.kill()
+              currentProcess = null
+          }
+          // stop the timer if active
+          node.log("stopping watchdog")
+          stopWatchdog()
+          node.log("stopped")
+          // empty the queue
+          msgQueue.length = 0    // yes, this is valid javascript
+          node.log("Length now " + msgQueue.length)
+          node.log("returning now")
         });
 
         function handleMessage(msg, send, done) {
           // If this is pre-1.0, 'send' will be undefined, so fallback to node.send
           send = send || function() { node.send.apply(node,arguments) }          
 
-          let currentProcess = null;
-          let watchdogTimer = null;
+          currentProcess = null;
+          watchdogTimer = null;
           let returnCode = 0;
           let errorDetails = null;
 
@@ -96,7 +114,7 @@ module.exports = function(RED) {
           }
 
           async function clearBackupFolder() {
-            //console.log(`Emptying ${folder}`)
+            //node.log(`Emptying ${folder}`)
             node.status({text: "Emptying Folder"})
             let files = [];
             try {
@@ -128,7 +146,7 @@ module.exports = function(RED) {
                 cmd += ` -end ${end}`
               }
               cmd += ` ${folder}`
-              //console.log (cmd)
+              //node.log (cmd)
               let childProcess = spawn(cmd, [], execOpt)
               currentProcess = childProcess
               restartWatchdog()
@@ -210,6 +228,8 @@ module.exports = function(RED) {
               } else {
               }
               await doBackup(msg)
+              // backup finished so clear the process and stop the timer
+              currentProcess = null;
               stopWatchdog()
               if (unzip) {
                   await unzipFiles()
@@ -218,7 +238,7 @@ module.exports = function(RED) {
 
           doIt()
           .catch(function (err) {
-              //console.log("Caught")
+              //node.log("Caught")
               node.status({text: "Error"})
               let msg2 = RED.util.cloneMessage(msg)
               msg2.topic = "catch"
@@ -229,7 +249,7 @@ module.exports = function(RED) {
           })
           .finally(function() {
               node.status({text: ""})
-              //console.log("Finally")
+              node.log("Finally")
               let msg2 = RED.util.cloneMessage(msg)
               msg2.payload = {code: returnCode}   // 0 is ok, 1 is failure
               send([null, null, msg2])
@@ -242,41 +262,48 @@ module.exports = function(RED) {
                   node.error( errorDetails, msg )
                 }
               }
-              // shift this message off the front of the queue
-              msgQueue.shift()
+              // shift this message off the front of the queue, with test just in case on close
+              // has somehow been called so the queue may already be empty
+              if (msgQueue.length > 0) {
+                msgQueue.shift()
+                node.log("Shifted " + msgQueue.length)
+              } else {
+                node.log("Not shifting, already empty")
+              }
               // see if any more to do
               if (msgQueue.length > 0) {
-                console.log("handling next one")
+                // start the next one
+                node.log("handling next one")
                 handleMessage(msgQueue[0].thisMsg, msgQueue[0].thisSend, msgQueue[0].thisDone)
               } else {
-                console.log( "all done")
+                node.log( "all done")
               }
           });
 
           send(null);
-          
-          function restartWatchdog() {
-              stopWatchdog()
-              watchdogTimer = setTimeout( watchdogEvent, 30000 )   // trigger event after 5 seconds
+        } 
+        function restartWatchdog() {
+            stopWatchdog()
+            watchdogTimer = setTimeout( watchdogEvent, 30000 )   // trigger event after 5 seconds
+        }
+        
+        function stopWatchdog() {
+          //node.log("stopping watchdog")
+          if (watchdogTimer) {
+              //node.log("about to clear")
+              clearTimeout(watchdogTimer)
+              watchdogTimer = null
+              //node.log("watchdog stopped")
           }
-          
-          function stopWatchdog() {
-              //node.log("stopping watchdog")
-              if (watchdogTimer) {
-                  clearTimeout(watchdogTimer)
-                  watchdogTimer = null
-                  //node.log("stopped")
-              }
-          }
-          
-          function watchdogEvent() {
-              // the watchdog has run down, kill the backup task if still running
-              if (currentProcess) {
-                  node.log("killing")
-                  currentProcess.kill()
-                  currentProcess = null
-              }
-          }
+        }
+        
+        function watchdogEvent() {
+            // the watchdog has run down, kill the backup task if still running
+            if (currentProcess) {
+                node.log("killing")
+                currentProcess.kill()
+                currentProcess = null
+            }
         }
     }
 
