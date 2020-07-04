@@ -48,15 +48,30 @@ module.exports = function(RED) {
         // Save "this" object
         let node = this;
 
-            
-            node.currentProcess = null;
-            node.watchdogTimer = null;
+        let msgQueue = [];
 
         node.on('input', function(msg, send, done) {
+          // push this one onto the queue
+          msgQueue.push( {thisMsg: msg, thisSend: send, thisDone: done} )
+          // if there is now only one in the queue then nothing going on so handle it immediately
+          // otherwise already dealing with one so nothing more to do
+          if (msgQueue.length == 1) {
+            console.log("handling immediate")
+            handleMessage(msgQueue[0].thisMsg, msgQueue[0].thisSend, msgQueue[0].thisDone)
+            // leave it in the queue, it will be shifted out when done
+          } else {
+            console.log("Queueing")
+          }
+        });
 
+        node.on('close', function() {
+          console.log("Closing")
+        });
+
+        function handleMessage(msg, send, done) {
           // If this is pre-1.0, 'send' will be undefined, so fallback to node.send
           send = send || function() { node.send.apply(node,arguments) }          
-    
+
           let currentProcess = null;
           let watchdogTimer = null;
           let returnCode = 0;
@@ -219,12 +234,22 @@ module.exports = function(RED) {
               msg2.payload = {code: returnCode}   // 0 is ok, 1 is failure
               send([null, null, msg2])
               stopWatchdog()
-              if (done)
+              if (done) {
                 done(errorDetails)    // will be null if no error
+              }
               else {
                 if (errorDetails) {
                   node.error( errorDetails, msg )
                 }
+              }
+              // shift this message off the front of the queue
+              msgQueue.shift()
+              // see if any more to do
+              if (msgQueue.length > 0) {
+                console.log("handling next one")
+                handleMessage(msgQueue[0].thisMsg, msgQueue[0].thisSend, msgQueue[0].thisDone)
+              } else {
+                console.log( "all done")
               }
           });
 
@@ -252,9 +277,8 @@ module.exports = function(RED) {
                   currentProcess = null
               }
           }
-        });
-                
-        
+        }
     }
+
     RED.nodes.registerType("influxdb backup",InfluxBackupNode);
 }
