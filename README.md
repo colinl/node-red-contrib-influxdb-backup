@@ -3,21 +3,21 @@ A Node-RED node for performing influx database backup using `influxd backup`.
 
 It creates a backup of the specified database in the configured folder, using `portable` mode.
 
-See the [Influxdb docs for influxd backup](https://docs.influxdata.com/influxdb/v1.8/administration/backup_and_restore/) in order to understand exactly how influx backup/restore works.  In particular note the section about configuring `bin-address` in `influxdb.conf`.
+See the [Influxdb docs for influxd backup](https://docs.influxdata.com/influxdb/v1.8/administration/backup_and_restore/) in order to understand exactly how influx backup/restore works.  In particular note the section about configuring `bind-address` in `influxdb.conf`.  The node has been tested using influxdb 1.8.0.
 
 ## Install
 
-Use the Node-RED `Manage Palette` command or run the following in your Node-RED user directory (typically `~/.node-red`):
+Use the Node-RED `Manage Palette` menu option or run the following in your Node-RED user directory (typically `~/.node-red`):
 
     npm install node-red-contrib-influxdb-backup
 
-## Configuration
+## Configuration and Inputs
 
 ### Folder
-The destination folder, may be configured as a string or as a message attribute.
+The destination folder for the backup files, may be configured as a string or as a message attribute.
 
 ### Database
-The database to be backed up, may be configured as a string or as a message attribute.
+The database to be backed up, may be configured as a string or as a message attribute.  If this is missing or an empty string then all databases are backed up.
 
 ### Host
 The hostname or IP address of the machine running influxdb. Defaults to `locahost`. May be configured as a string or as a message attribute.
@@ -26,12 +26,26 @@ The hostname or IP address of the machine running influxdb. Defaults to `locahos
 The port to use to connect to influxdb. Defaults to `8088`. May be configured as a string or as a message attribute.
 
 ### Clear destination folder
-If this is `true` then any previous backup files are deleted before the backup is run.  May be configured as a boolean or provided as a message attribute (which must be boolean `true` or string "true", anything else is interpreted as false)
+If this is `true` then any previous backup files are deleted before the backup is run.  May be configured as a boolean or provided as a message attribute (which must be boolean `true` or string "true", anything else is interpreted as false).
 
-### Unzip files
-If this is `true` then the backup files (which are `.tar.gz` files) are unzipped after the backup is performed.  This is useful if the files are to be backed up using a de-duplicating backup application such as `borg`.  After unzipping all files containing data from before the previous backup will have the same content as in the last backup so even though the filenames have changed the contents are not and the de-duplication algorithm will mean they take up a very small additional space in the archive.
+### Unzip and rename files
+If this is `true` then the backup files (which are `.tar.gz` files) are unzipped after the backup is performed, then they are all renamed from the standard format `YYYYMMDDTHHMMSSZ.*.tar.gz` to `<prefix>.*.tar`.  In addition the manifest file contents are adjusted for the modified filenames.  This is useful when using a regular backup strategy that uses incremental backups or some form of deduplication such as Borg or Back In Time.  Most of the files in the influx backup do not change at each backup, so the backup strategy does not need to make new copies of them (the timestamps will be different but the contents the same).  It is necessary to unzip the files as the original gz files do differ each time, I imagine the gz file includes the timestamps of the embedded files, which will be different.  May be configured as a boolean or provided as a message attribute (which must be boolean `true` or string "true", anything else is interpreted as false).  
+If it is required to restore the backup it is just necessary to zip them up again, on linux `gzip *.tar` will suffice, then run the restore command as documented in the influx link earlier.
 
+## Outputs
+### 1. Standard Output 
+The standard output of the backup command.  Multiple progress messages will be sent as the backup proceeds.  This ouput is provided in case of problems, or to allow confirmation that the expected backup has been performed.
 
-## Node status
-The state of the gate is indicated by a status object: text.
+### 2. Standard Error
+The standard error output from the backup command, and error messages from other actions.  There may be multiple error messages.
+
+### 3. Return Code
+The payload is an object containing the attribute `code` containing the return code. Zero implies success.  This message will be sent then the operation is complete.
+
+### Catch
+A linked Catch node will send a message containing details of any error.  There will be at most one Catch message.  There will not be both Catch and Complete messages.
+
+### Complete
+A linked Complete node will send a message on successful completion.  No message will be sent if there is an error.
+
 

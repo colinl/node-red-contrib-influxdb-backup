@@ -124,7 +124,7 @@ module.exports = function(RED) {
                   if (msg2.payload.includes("shard=")) {
                       restartWatchdog()
                   }
-                  send(msg2);         // Clone?
+                  send(msg2);
               });
               childProcess.stderr.on('data', function (data) {
                   let msg2 = RED.util.cloneMessage(msg)
