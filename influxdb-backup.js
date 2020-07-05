@@ -14,21 +14,28 @@
  * limitations under the License.
  **/
 module.exports = function(RED) {
-    let PromisifyChildProcess = require('promisify-child-process');
-    let fs = require('fs');
-    let util = require('util')
-    let pako = require('pako');
-    const { exec, spawn/*, fork, execFile*/ } = PromisifyChildProcess;
-    const execOpt = {encoding: 'binary', maxBuffer: 10000000, shell: '/bin/bash'}
-    const {promisify} = util;
-    const readdirP = promisify(fs.readdir)
-    const unlinkP = promisify(fs.unlink)
-    const readFileP = promisify(fs.readFile)
-    const writeFileP = promisify(fs.writeFile)
-    const renameP = promisify(fs.rename)
-        
+   
     function InfluxBackupNode(config) {
         RED.nodes.createNode(this,config);
+        let PromisifyChildProcess = require('promisify-child-process');
+        let fs = require('fs');
+        let util = require('util')
+        let pako = require('pako');
+        const { exec, spawn/*, fork, execFile*/ } = PromisifyChildProcess;
+        const execOpt = {encoding: 'binary', maxBuffer: 10000000, shell: '/bin/bash'}
+        const {promisify} = util;
+        const readdirP = promisify(fs.readdir)
+        const unlinkP = promisify(fs.unlink)
+        const readFileP = promisify(fs.readFile)
+        const writeFileP = promisify(fs.writeFile)
+        const renameP = promisify(fs.rename)
+
+        const waitingStatus = {text:''};
+        const clearingStatus = {fill:'green',shape:'dot',text:'Clearing'};
+        const runningStatus = {fill:'green',shape:'dot',text:'Running Backup'};
+        const unzippingStatus = {fill:'green',shape:'dot',text:'Unzipping'};
+        const errorStatus = {fill:'red',shape:'dot',text:'Error'};
+
         // Copy configuration items
         this.folderConfig = config.folder || "";
         this.folderType = config.folderType || "str"
@@ -115,7 +122,7 @@ module.exports = function(RED) {
 
           async function clearBackupFolder() {
             //node.log(`Emptying ${folder}`)
-            node.status({text: "Emptying Folder"})
+            node.status(clearingStatus)
             let files = [];
             try {
               files = await readdirP(folder);
@@ -133,7 +140,7 @@ module.exports = function(RED) {
           }
 
           function doBackup(msg) {
-              node.status({text: "Running Backup"})
+              node.status(runningStatus)
               let cmd = `influxd backup -portable`
               if (database && database.length > 0) {
                 cmd += ` -database ${database}`
@@ -171,7 +178,7 @@ module.exports = function(RED) {
           }
           
           async function unzipFiles() {
-              node.status({text: "Unzipping Files"})
+              node.status(unzippingStatus)
               let files = await readdirP(folder);
               const regex = /\d{8}T\d{6}Z.*[.]tar[.]gz$/
               // select matching files only
@@ -239,7 +246,7 @@ module.exports = function(RED) {
           doIt()
           .catch(function (err) {
               //node.log("Caught")
-              node.status({text: "Error"})
+              node.status(errorStatus)
               let msg2 = RED.util.cloneMessage(msg)
               msg2.topic = "catch"
               msg2.payload = err
@@ -248,8 +255,10 @@ module.exports = function(RED) {
               errorDetails = err
           })
           .finally(function() {
-              node.status({text: ""})
               node.log("Finally")
+              if (!errorDetails) {
+                node.status(waitingStatus)
+              }
               let msg2 = RED.util.cloneMessage(msg)
               msg2.payload = {code: returnCode}   // 0 is ok, 1 is failure
               send([null, null, msg2])
