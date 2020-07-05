@@ -284,7 +284,7 @@ module.exports = function(RED) {
         } 
         function restartWatchdog() {
             stopWatchdog()
-            watchdogTimer = setTimeout( watchdogEvent, 30000 )   // trigger event after 5 seconds
+            watchdogTimer = setTimeout( watchdogEvent, 30000 )   // trigger event after 30 seconds
         }
         
         function stopWatchdog() {

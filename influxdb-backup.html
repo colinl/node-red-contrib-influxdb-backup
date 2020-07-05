@@ -15,147 +15,249 @@
 -->
 
 <script type="text/javascript">
-    RED.nodes.registerType('influxdb backup',{
-        category: 'storage',
-        color: 'rgb(218, 196, 180)',
-        defaults: {
-            name: {value:""},
-            folder: {value:"", required: true},
-            folderType: {value: "str"},
-            database: {value:""},
-            databaseType: {value: "str"},
-            host: {value:"localhost", required: true},
-            hostType: {value: "str"},
-            port: {value:"8088", required: true},
-            portType: {value: "str"},
-            clearfolder: {value: false},
-            clearfolderType: {value: "bool"},
-            unzip: {value: false},
-            unzipType: {value: "bool"},
-            prefix: {value:""},
-            prefixType: {value: "str"}
-        },
-        inputs:1,
-        outputs:3,
-        icon: "influx.png",
-        label: function() {
-            return this.name||"influxdb backup";
-        },
-        labelStyle: function() {
-            return this.name?"node_label_italic":"";
-        },
-        oneditprepare: function() {
-          if (!this.folderType) {
-              this.folderType = 'str';
-          }
-          $("#node-input-folder").typedInput({
-              default: 'str',
-              types: ['str','msg','flow','global','env'],
-              typeField: $("#node-input-folderType")
-          });
-          if (!this.databaseType) {
-              this.databaseType = 'str';
-          }
-          $("#node-input-database").typedInput({
-              default: 'str',
-              types: ['str','msg','flow','global','env'],
-              typeField: $("#node-input-databaseType")
-          });
-          if (!this.hostType) {
-              this.hostType = 'str';
-          }
-          $("#node-input-host").typedInput({
-              default: 'str',
-              types: ['str','msg','flow','global','env'],
-              typeField: $("#node-input-hostType")
-          });
-          if (!this.portType) {
-              this.portType = 'str';
-          }
-          $("#node-input-port").typedInput({
-              default: 'str',
-              types: ['str','msg','flow','global','env'],
-              typeField: $("#node-input-portType")
-          });
-          if (!this.clearfolderType) {
-              this.clearfolderType = 'bool';
-          }
-          $("#node-input-clearfolder").typedInput({
-              default: 'bool',
-              types: ['bool','msg','flow','global','env'],
-              typeField: $("#node-input-clearfolderType")
-          });
-          if (!this.unzipType) {
-              this.unzipType = 'bool';
-          }
-          $("#node-input-unzip").typedInput({
-              default: 'bool',
-              types: ['bool','msg','flow','global','env'],
-              typeField: $("#node-input-unzipType")
-          });
-          if (!this.prefixType) {
-              this.prefixType = 'str';
-          }
-          $("#node-input-prefix").typedInput({
-              default: 'str',
-              types: ['str','msg','flow','global','env'],
-              typeField: $("#node-input-prefixType")
-          });
-        }
-    });
+  RED.nodes.registerType('influxdb backup', {
+    category: 'storage',
+    color: 'rgb(218, 196, 180)',
+    defaults: {
+      name: { value: "" },
+      folder: { value: "", required: true },
+      folderType: { value: "str" },
+      database: { value: "" },
+      databaseType: { value: "str" },
+      host: { value: "localhost", required: true },
+      hostType: { value: "str" },
+      port: { value: "8088", required: true },
+      portType: { value: "str" },
+      clearfolder: { value: false },
+      clearfolderType: { value: "bool" },
+      unzip: { value: false },
+      unzipType: { value: "bool" },
+      prefix: { value: "" },
+      prefixType: { value: "str" }
+    },
+    inputs: 1,
+    outputs: 3,
+    icon: "influx.png",
+    label: function () {
+      return this.name || "influxdb backup";
+    },
+    labelStyle: function () {
+      return this.name ? "node_label_italic" : "";
+    },
+    oneditprepare: function () {
+      if (!this.folderType) {
+        this.folderType = 'str';
+      }
+      $("#node-input-folder").typedInput({
+        default: 'str',
+        types: ['str', 'msg', 'flow', 'global', 'env'],
+        typeField: $("#node-input-folderType")
+      });
+      if (!this.databaseType) {
+        this.databaseType = 'str';
+      }
+      $("#node-input-database").typedInput({
+        default: 'str',
+        types: ['str', 'msg', 'flow', 'global', 'env'],
+        typeField: $("#node-input-databaseType")
+      });
+      if (!this.hostType) {
+        this.hostType = 'str';
+      }
+      $("#node-input-host").typedInput({
+        default: 'str',
+        types: ['str', 'msg', 'flow', 'global', 'env'],
+        typeField: $("#node-input-hostType")
+      });
+      if (!this.portType) {
+        this.portType = 'str';
+      }
+      $("#node-input-port").typedInput({
+        default: 'str',
+        types: ['str', 'msg', 'flow', 'global', 'env'],
+        typeField: $("#node-input-portType")
+      });
+      if (!this.clearfolderType) {
+        this.clearfolderType = 'bool';
+      }
+      $("#node-input-clearfolder").typedInput({
+        default: 'bool',
+        types: ['bool', 'msg', 'flow', 'global', 'env'],
+        typeField: $("#node-input-clearfolderType")
+      });
+      if (!this.unzipType) {
+        this.unzipType = 'bool';
+      }
+      $("#node-input-unzip").typedInput({
+        default: 'bool',
+        types: ['bool', 'msg', 'flow', 'global', 'env'],
+        typeField: $("#node-input-unzipType")
+      });
+      if (!this.prefixType) {
+        this.prefixType = 'str';
+      }
+      $("#node-input-prefix").typedInput({
+        default: 'str',
+        types: ['str', 'msg', 'flow', 'global', 'env'],
+        typeField: $("#node-input-prefixType")
+      });
+    }
+  });
 </script>
 
 <script type="text/x-red" data-template-name="influxdb backup">
-    <!-- Name -->  
-    <div class="form-row">
-        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-        <input type="text" id="node-input-name" placeholder="Name">
-    </div>
-    </br>
-    <!-- Folder -->  
-    <div class="form-row">
-        <label for="node-input-folder"><i class="fa fa-folder"></i> Folder</label>
-        <input type="text" id="node-input-folder" placeholder="Folder">
-        <input type="hidden" id="node-input-folderType">
-    </div>
-    <!-- Database -->  
-    <div class="form-row">
-        <label for="node-input-database"><i class="fa fa-tag"></i> Database</label>
-        <input type="text" id="node-input-database" placeholder="Database">
-        <input type="hidden" id="node-input-databaseType">
-    </div>
-    <!-- Host -->  
-      <div class="form-row">
-        <label for="node-input-host"><i class="fa fa-tag"></i> Host</label>
-        <input type="text" id="node-input-host" placeholder="Host">
-        <input type="hidden" id="node-input-hostType">
-    </div>
-    <!-- Port -->  
-    <div class="form-row">
-        <label for="node-input-port"><i class="fa fa-tag"></i> Port</label>
-        <input type="text" id="node-input-port" placeholder="Port">
-        <input type="hidden" id="node-input-portType">
-    </div>
-    <!-- Clear Folder -->  
-    <div class="form-row">
-        <label for="node-input-clearfolder"><i class="fa fa-tag"></i> Clear folder</label>
-        <input type="text" id="node-input-clearfolder">
-        <input type="hidden" id="node-input-clearfolderType">
-    </div>
-    <div class="form-row">
-        <!-- Unzip -->  
-        <label for="node-input-unzip"><i class="fa fa-tag"></i> Unzip and rename files</label>
-        <input type="text" id="node-input-unzip">
-        <input type="hidden" id="node-input-unzipType">
-    </div>
-    <div class="form-row">
-        <!-- Prefix -->  
-        <label for="node-input-prefix"%><i class="fa fa-tag"></i> Prefix</label>
-        <input type="text" id="node-input-prefix" placeholder="Prefix">
-        <input type="hidden" id="node-input-prefixType">
-    </div>  
+    <!-- Name -->
+<div class="form-row">
+  <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+  <input type="text" id="node-input-name" placeholder="Name">
+</div>
+</br>
+<!-- Folder -->
+<div class="form-row">
+  <label for="node-input-folder"><i class="fa fa-folder"></i> Folder</label>
+  <input type="text" id="node-input-folder" placeholder="Folder">
+  <input type="hidden" id="node-input-folderType">
+</div>
+<!-- Database -->
+<div class="form-row">
+  <label for="node-input-database"><i class="fa fa-tag"></i> Database</label>
+  <input type="text" id="node-input-database" placeholder="Database">
+  <input type="hidden" id="node-input-databaseType">
+</div>
+<!-- Host -->
+<div class="form-row">
+  <label for="node-input-host"><i class="fa fa-tag"></i> Host</label>
+  <input type="text" id="node-input-host" placeholder="Host">
+  <input type="hidden" id="node-input-hostType">
+</div>
+<!-- Port -->
+<div class="form-row">
+  <label for="node-input-port"><i class="fa fa-tag"></i> Port</label>
+  <input type="text" id="node-input-port" placeholder="Port">
+  <input type="hidden" id="node-input-portType">
+</div>
+<!-- Clear Folder -->
+<div class="form-row">
+  <label for="node-input-clearfolder"><i class="fa fa-tag"></i> Clear folder</label>
+  <input type="text" id="node-input-clearfolder">
+  <input type="hidden" id="node-input-clearfolderType">
+</div>
+<div class="form-row">
+  <!-- Unzip -->
+  <label for="node-input-unzip"><i class="fa fa-tag"></i> Unzip and rename files</label>
+  <input type="text" id="node-input-unzip">
+  <input type="hidden" id="node-input-unzipType">
+</div>
+<div class="form-row">
+  <!-- Prefix -->
+  <label for="node-input-prefix" %><i class="fa fa-tag"></i> Prefix</label>
+  <input type="text" id="node-input-prefix" placeholder="Prefix">
+  <input type="hidden" id="node-input-prefixType">
+</div>
 </script>
 
 <script type="text/x-red" data-help-name="influxdb backup">
-    <p>Influx database backup using influxd backup</p>
+  <p>Perform an influxdb database backup using influxd backup</p>
+  <h3>Configuration and Inputs</h3>
+  <dl class="message-properties">
+    <dt>Folder</dt>
+    <p>The destination folder for the backup files, may be configured as a string or as 
+      a message attribute.</p>
+      
+    <dt>Database</dt>
+    <p>The database to be backed up, may be configured as a string or as a message attribute.  
+      If this is missing or an empty string then all databases are backed up.</p>
+      
+    <dt>Host</dt>
+    <p>The hostname or IP address of the machine running influxdb. Defaults to <code>locahost</code>. 
+      May be configured as a string or as a message attribute.</p>
+      
+    <dt>Port</dt>
+    <p>The port to use to connect to influxdb. Defaults to <code>8088</code>. 
+      May be configured as a string or as a message attribute.</p>
+      
+    <dt>Clear folder</dt>
+    <p>If this is <code>true</code> then any previous backup files are deleted before the backup is run.  
+      May be configured as a boolean or provided as a message 
+      attribute (which must be boolean <code>true</code> or string <code>"true"</code>, 
+      anything else is interpreted as false).</p>
+      
+    <dt>
+        Unzip and rename files
+    </dt>
+    <p>
+      If this is <code>true</code> then the backup files (which are <code>.tar.gz</code> files) 
+      are unzipped after the backup is performed, then they are all renamed from the standard format 
+      <code>YYYYMMDDTHHMMSSZ.*.tar.gz</code> to <code>&lt;prefix&gt;.*.tar</code>.  
+      In addition the manifest file contents are adjusted for the modified filenames.  
+      This is useful when using a regular backup strategy that uses incremental backups or some 
+      form of deduplication such as Borg or Back In Time.  
+      Most of the files in the influx backup do not change at each backup, so the backup strategy 
+      does not need to make new copies of them (the timestamps will be different but the contents 
+      the same).  It is necessary to unzip the files as the original gz files do differ each time, 
+      I imagine the gz file includes the timestamps of the embedded files, which will be different.  
+      May be configured as a boolean or provided as a message attribute (which must be boolean <code>true</code> 
+      or string "true", anything else is interpreted as false).  
+      If it is required to restore the backup it is just necessary to zip them up again, on 
+      linux <code>gzip *.tar</code> will suffice, then run the restore command as documented in the 
+      influx link above.
+    </p>
+
+    <dt>Prefix</dt>
+    <p>
+      When Unzip and rename is requested then this sets the filename to use. 
+      May be configured as a string or as a message attribute.
+    </p>
+    
+    <dt>Start time</dt>
+    <p>
+      The start of the time range to backup may be provided by passing a string in <code>msg.start</code>.  The string must be formatted exactly as defined in the Influxdb link above.  For example <code>"2020-06-01T12:00:00Z"</code>.
+      If <code>msg.start</code> is not provided then the backup will be from the earliest data in the database.
+    </p>
+    
+    <dt>End time</dt>
+    <p>
+      The end of the time range to backup may be provided by passing a string in <code>msg.end</code>.  
+      The string must be formatted exactly as defined in the Influxdb link above.  
+      For example <code>"2020-07-01T12:00:00Z"</code>.
+      If <code>msg.end</code> is not provided then the backup will be up to the latest data in the database.
+    </p>
+    
+  </dl>      
+  <h3>
+    Outputs
+  </h3>
+  <dl class="message-properties">
+    <dt>1. Standard Output</dt> 
+    <p>
+      The standard output of the backup command.  
+      Multiple progress messages will be sent as the backup proceeds.  
+      This ouput is provided in case of problems, or to allow confirmation that the expected backup 
+      has been performed.
+    </p>
+    
+    <dt>2. Standard Error</dt>
+    <p>
+      The standard error output from the backup command, and error messages from other actions.  
+      There may be multiple error messages.
+    </p>
+    
+    <dt>3. Return Code</dt>
+    <p>
+      The payload is an object containing the attribute <code>code</code> containing the return code. 
+      Zero implies success.  This message will be sent when the operation is complete.
+    </p>
+    
+    <dt>Catch</dt>
+    <p>
+      A linked Catch node will send a message containing details of any error.  
+      There will be at most one Catch message.  There will not be both Catch and Complete messages.
+    </p>
+    
+    <dt>Complete</dt>
+    <p>
+      A linked Complete node will send a message on successful completion.  
+      No message will be sent if there is an error.
+    </p>
+  </dl>
 </script>
