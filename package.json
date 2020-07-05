@@ -1,6 +1,6 @@
 {
     "name"         : "node-red-contrib-influxdb-backup",
-    "version"      : "0.0.0",
+    "version"      : "0.0.1",
     "description"  : "A node for backing up influx database using influxd backup",
     "license"      : "Apache-2.0",
     "author"       : "Colin Law",
