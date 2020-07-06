@@ -3,9 +3,10 @@ A Node-RED node for performing influx database backup using `influxd backup`.
 
 It creates a backup of the specified database in the configured folder, using `portable` mode.
 
+## Prerequisites
+
 See the [Influxdb docs for influxd backup](https://docs.influxdata.com/influxdb/v1.8/administration/backup_and_restore/) in order to understand exactly how influx backup/restore works.  In particular note the section about configuring `bind-address` in `influxdb.conf`.  The node has been tested using influxdb 1.8.0, at the time of writing it is unclear whether the backup command has changed for Influxdb 2.0.
 
-## Prerequisites
 If the Influx database is on a remote server then influx must also be installed on the machine running node-red, so that the `influxd` command is available.
 
 ## Install
@@ -17,7 +18,7 @@ Use the Node-RED `Manage Palette` menu option or run the following in your Node-
 ## Configuration and Inputs
 
 ### Folder
-The destination folder for the backup files, may be configured as a string or as a message attribute.
+The destination folder for the backup files, may be configured as a string or as a message attribute. If the folder does not exist then it will be created.
 
 ### Database
 The database to be backed up, may be configured as a string or as a message attribute.  If this is missing or an empty string then all databases are backed up.

@@ -162,7 +162,7 @@
   <dl class="message-properties">
     <dt>Folder</dt>
     <p>The destination folder for the backup files, may be configured as a string or as 
-      a message attribute.</p>
+      a message attribute. If the folder does not exist then it will be created.</p>
       
     <dt>Database</dt>
     <p>The database to be backed up, may be configured as a string or as a message attribute.  
@@ -260,4 +260,20 @@
       No message will be sent if there is an error.
     </p>
   </dl>
+
+  <h3>
+    Prerequisites
+  </h3>
+  <p>
+    See the <a href="https://docs.influxdata.com/influxdb/v1.8/administration/backup_and_restore/"> 
+    Influxdb docs for influxd backup</a>
+    in order to understand exactly how influx backup/restore works.  
+    In particular note the section about configuring `bind-address` in `influxdb.conf`.  
+    The node has been tested using influxdb 1.8.0, at the time of writing it is unclear whether the 
+    backup command has changed for Influxdb 2.0.
+  </p>
+  <p>
+    If the Influx database is on a remote server then influx must also be installed on the machine 
+    running node-red, so that the <code>influxd</code> command is available.
+  </p>
 </script>
