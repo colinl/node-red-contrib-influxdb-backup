@@ -66,31 +66,22 @@ module.exports = function(RED) {
           // if there is now only one in the queue then nothing going on so handle it immediately
           // otherwise already dealing with one so nothing more to do
           if (msgQueue.length == 1) {
-            node.log("handling immediate")
             handleMessage(msgQueue[0].thisMsg, msgQueue[0].thisSend, msgQueue[0].thisDone)
             // leave it in the queue, it will be shifted out when done
           } else {
-            node.log("Queued " + msgQueue.length)
           }
         });
 
         node.on('close', function() {
-          node.log("Closing")
-          //node.log("Closing " + msgQueue.length)
           // kill the current process if any
           if (currentProcess) {
-              node.log("killing")
               currentProcess.kill()
               currentProcess = null
           }
           // stop the timer if active
-          node.log("stopping watchdog")
           stopWatchdog()
-          node.log("stopped")
           // empty the queue
           msgQueue.length = 0    // yes, this is valid javascript
-          node.log("Length now " + msgQueue.length)
-          node.log("returning now")
         });
 
         function handleMessage(msg, send, done) {
@@ -121,7 +112,6 @@ module.exports = function(RED) {
           }
 
           async function clearBackupFolder() {
-            //node.log(`Emptying ${folder}`)
             node.status(clearingStatus)
             let files = [];
             try {
@@ -249,7 +239,6 @@ module.exports = function(RED) {
 
           doIt()
           .catch(function (err) {
-              //node.log("Caught")
               node.status(errorStatus)
               let msg2 = RED.util.cloneMessage(msg)
               msg2.topic = "catch"
@@ -262,7 +251,6 @@ module.exports = function(RED) {
               returnCode = 1    // indicates error
           })
           .finally(function() {
-              node.log("Finally")
               if (!errorDetails) {
                 node.status(waitingStatus)
               }
@@ -282,17 +270,12 @@ module.exports = function(RED) {
               // has somehow been called so the queue may already be empty
               if (msgQueue.length > 0) {
                 msgQueue.shift()
-                node.log("Shifted " + msgQueue.length)
               } else {
-                node.log("Not shifting, already empty")
               }
               // see if any more to do
               if (msgQueue.length > 0) {
                 // start the next one
-                node.log("handling next one")
                 handleMessage(msgQueue[0].thisMsg, msgQueue[0].thisSend, msgQueue[0].thisDone)
-              } else {
-                node.log( "all done")
               }
           });
 
@@ -304,19 +287,15 @@ module.exports = function(RED) {
         }
         
         function stopWatchdog() {
-          //node.log("stopping watchdog")
           if (watchdogTimer) {
-              //node.log("about to clear")
               clearTimeout(watchdogTimer)
               watchdogTimer = null
-              //node.log("watchdog stopped")
           }
         }
         
         function watchdogEvent() {
             // the watchdog has run down, kill the backup task if still running
             if (currentProcess) {
-                node.log("killing")
                 currentProcess.kill()
                 currentProcess = null
             }
