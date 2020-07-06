@@ -170,6 +170,10 @@ module.exports = function(RED) {
                   let msg2 = RED.util.cloneMessage(msg)
                   msg2.topic = "stderr"
                   msg2.payload = data.toString()
+                  // keep the message from the first one for sending to catch node
+                  if (!errorDetails) {
+                    errorDetails = msg2.payload
+                  }
                   send([null, msg2]);
                   // don't set return code failed as it may not be a permanent error
               });
@@ -249,10 +253,13 @@ module.exports = function(RED) {
               node.status(errorStatus)
               let msg2 = RED.util.cloneMessage(msg)
               msg2.topic = "catch"
-              msg2.payload = err
+              // use the passed error unless we have already saved one
+              if (!errorDetails) {
+                errorDetails = err
+              }
+              msg2.payload = errorDetails
               send([null, msg2, null])
               returnCode = 1    // indicates error
-              errorDetails = err
           })
           .finally(function() {
               node.log("Finally")
