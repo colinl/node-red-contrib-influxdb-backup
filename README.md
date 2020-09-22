@@ -49,7 +49,7 @@ If `msg.end` is not provided then the backup will be up to the latest data in th
 
 ## Outputs
 ### 1. Standard Output 
-The standard output of the backup command.  Multiple progress messages will be sent as the backup proceeds.  This ouput is provided in case of problems, or to allow confirmation that the expected backup has been performed.
+The standard output of the backup command.  Multiple progress messages will be sent as the backup proceeds.  This output is provided in case of problems, or to allow confirmation that the expected backup has been performed.
 
 ### 2. Standard Error
 The standard error output from the backup command, and error messages from other actions.  There may be multiple error messages.
