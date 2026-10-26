@@ -106,6 +106,19 @@ module.exports = function (RED) {
       let prefix = RED.util.evaluateNodeProperty(node.prefixConfig, node.prefixType, node, msg)
       let start = msg.start
       let end = msg.end
+      // validate start and end are of the right format and ignore if not
+      const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/
+
+      if (start && (!dateRegex.test(start) || isNaN(Date.parse(start)))) {
+        node.warn('msg.start is not a valid ISO date/time: ' + start, msg)
+        start = null
+      }
+
+      if (end && (!dateRegex.test(end) || isNaN(Date.parse(end)))) {
+        node.warn('msg.end is not a valid ISO date/time: ' + end, msg)
+        end = null
+      }
+
       if (start && !end) {
         // start provided but not end, so provide end in the future
         end = "2050-01-01T00:00:00Z"
@@ -143,7 +156,7 @@ module.exports = function (RED) {
           cmd += ` -end ${end}`
         }
         cmd += ` ${folder}`
-        //node.log (cmd)
+        //node.log (`cmd: ${cmd}`)
         let childProcess = spawn(cmd, [], execOpt)
         currentProcess = childProcess
         restartWatchdog()

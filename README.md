@@ -42,10 +42,12 @@ When Unzip and rename is requested then this sets the filename to use. May be co
 ### Start time
 The start of the time range to backup may be provided by passing a string in `msg.start`.  The string must be formatted exactly as defined in the Influxdb link above.  For example `"2020-06-01T12:00:00Z"`.
 If `msg.start` is not provided then the backup will be from the earliest data in the database.
+If `msg.start` is not in the specified format then a warning will be logged and `msg.start` will be ignored.
 
 ### End time
 The end of the time range to backup may be provided by passing a string in `msg.end`.  The string must be formatted exactly as defined in the Influxdb link above.  For example `"2020-07-01T12:00:00Z"`.
 If `msg.end` is not provided then the backup will be up to the latest data in the database.
+If `msg.end` is not in the specified format then a warning will be logged and `msg.end` will be ignored.
 
 ## Outputs
 ### 1. Standard Output 

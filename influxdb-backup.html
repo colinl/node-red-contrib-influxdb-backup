@@ -213,6 +213,7 @@
     <p>
       The start of the time range to backup may be provided by passing a string in <code>msg.start</code>.  The string must be formatted exactly as defined in the Influxdb link above.  For example <code>"2020-06-01T12:00:00Z"</code>.
       If <code>msg.start</code> is not provided then the backup will be from the earliest data in the database.
+      If <code>msg.start</code> is not in the specified format then a warning will be logged and <code>msg.start</code> will be ignored.
     </p>
     
     <dt>End time</dt>
@@ -221,6 +222,7 @@
       The string must be formatted exactly as defined in the Influxdb link above.  
       For example <code>"2020-07-01T12:00:00Z"</code>.
       If <code>msg.end</code> is not provided then the backup will be up to the latest data in the database.
+      If <code>msg.end</code> is not in the specified format then a warning will be logged and <code>msg.end</code> will be ignored.
     </p>
     
   </dl>      
